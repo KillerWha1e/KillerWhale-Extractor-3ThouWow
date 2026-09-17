@@ -178,7 +178,10 @@ if legend_mode == "Manual Way":
             )
 
             # Position entry is below the graph/slider and can also move the red line.
-            position_col, reset_col, _spacer = st.columns([1, 1, 3])
+            position_col, reset_col, _spacer = st.columns(
+                [1.25, 0.75, 3],
+                vertical_alignment="bottom",
+            )
             with position_col:
                 st.number_input(
                     "Position",
@@ -191,7 +194,6 @@ if legend_mode == "Manual Way":
                 )
 
             with reset_col:
-                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
                 if st.button("Reset", key=f"reset_{i}", use_container_width=True):
                     reset_percent = float(p["default_fraction"] * 100.0)
                     clicks[i] = p["default_fraction"]
