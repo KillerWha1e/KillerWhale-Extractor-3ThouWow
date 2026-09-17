@@ -59,7 +59,7 @@ ce_excel_files = st.file_uploader(
     type=["xlsx", "xlsm"],
     accept_multiple_files=True,
     key="ce_excel_files",
-    help="Each CE Excel filename must match its CE PDF filename exactly, except for the extension.",
+    help="Each CE Excel filename must match its CE PDF filename exactly.",
 )
 
 st.subheader("Recalculation")
