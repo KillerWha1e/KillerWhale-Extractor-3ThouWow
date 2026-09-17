@@ -178,19 +178,21 @@ if legend_mode == "Manual Way":
             )
 
             # Position entry is below the graph/slider and can also move the red line.
-            position_col, reset_col, _spacer = st.columns(
-                [1.25, 0.75, 3],
-                vertical_alignment="bottom",
-            )
+            # Position and Reset in one horizontal row.
+            # Put the label above the row separately so both widgets share the same baseline.
+            st.markdown("Position")
+            position_col, reset_col, _spacer = st.columns([1.25, 0.75, 3])
+
             with position_col:
                 st.number_input(
-                    "Position",
+                    "Position value",
                     min_value=0.0,
                     max_value=100.0,
                     step=0.1,
                     format="%.1f",
                     key=number_key,
                     on_change=_number_changed,
+                    label_visibility="collapsed",
                 )
 
             with reset_col:
