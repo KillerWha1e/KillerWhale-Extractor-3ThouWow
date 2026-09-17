@@ -81,7 +81,7 @@ if st.session_state.get("upload_signature") != signature:
     st.session_state.pop("mask_previews", None)
     st.session_state.pop("mask_clicks", None)
     for _k in list(st.session_state.keys()):
-        if str(_k).startswith("mask_drag_"):
+        if str(_k).startswith("mask_drag_") or str(_k).startswith("mask_number_"):
             del st.session_state[_k]
 
 if legend_mode == "Manual Way":
@@ -110,9 +110,15 @@ if legend_mode == "Manual Way":
     clicks = st.session_state.get("mask_clicks", [])
     if previews:
         st.markdown("### Manual Snips")
-        st.caption("A red vertical bar shows the cut position. Drag the control under the graph to move it. Everything to the right of the bar on the detected legend row will be removed.")
         for i, p in enumerate(previews):
-            st.markdown(f"**Graph {i+1}: {p['title']}**")
+            preview_title = str(p.get("title", f"Graph {i+1}"))
+            # Backend titles may include the PDF name. Strip the old instruction text.
+            pdf_label = preview_title.replace("RE Legend Mask — drag red bar, then Apply", "").strip(" —-")
+            if not pdf_label:
+                # Fall back to the uploaded PDF order if the backend title is generic.
+                all_pdf_names = [f.name for f in (re_files or [])] + [f.name for f in (ce_pdfs or [])]
+                pdf_label = all_pdf_names[i] if i < len(all_pdf_names) else f"Graph {i+1}"
+            st.markdown(f"**{pdf_label}**")
             # Stable browser Manual Way:
             # display the actual graph with a red bar. A draggable control directly
             # underneath moves that bar, similar to the old desktop Manual Way.
@@ -140,29 +146,50 @@ if legend_mode == "Manual Way":
 
             st.image(base_image, width="stretch")
 
-            drag_percent = st.slider(
-                "Drag red bar",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                key=slider_key,
-                label_visibility="collapsed",
-            )
-            clicks[i] = float(drag_percent) / 100.0
-            st.session_state.mask_clicks = clicks
-            st.caption(
-                "Drag left/right. The red line shows exactly where the legend mask starts."
-            )
+            control_col, number_col = st.columns([4, 1])
 
-            c1, c2 = st.columns(2)
-            if c1.button("Reset", key=f"reset_{i}"):
+            with control_col:
+                drag_percent = st.slider(
+                    "Red bar position",
+                    min_value=0.0,
+                    max_value=100.0,
+                    step=0.1,
+                    key=slider_key,
+                    label_visibility="collapsed",
+                )
+
+            number_key = f"mask_number_{i}"
+            if number_key not in st.session_state:
+                st.session_state[number_key] = float(drag_percent)
+
+            # Keep number input synced when the slider changes.
+            if abs(float(st.session_state[number_key]) - float(drag_percent)) > 0.0001:
+                st.session_state[number_key] = float(drag_percent)
+
+            with number_col:
+                typed_percent = st.number_input(
+                    "Position",
+                    min_value=0.0,
+                    max_value=100.0,
+                    step=0.1,
+                    key=number_key,
+                )
+
+            # If the user typed a different value, use it and update slider next rerun.
+            final_percent = float(typed_percent)
+            if abs(final_percent - float(drag_percent)) > 0.0001:
+                st.session_state[slider_key] = final_percent
+                st.rerun()
+
+            clicks[i] = final_percent / 100.0
+            st.session_state.mask_clicks = clicks
+
+            if st.button("Reset", key=f"reset_{i}"):
+                default_percent = float(p["default_fraction"] * 100.0)
                 clicks[i] = p["default_fraction"]
                 st.session_state.mask_clicks = clicks
-                st.session_state[f"mask_drag_{i}"] = float(p["default_fraction"] * 100.0)
-                st.rerun()
-            if c2.button("Skip Mask", key=f"skip_{i}"):
-                clicks[i] = None
-                st.session_state.mask_clicks = clicks
+                st.session_state[f"mask_drag_{i}"] = default_percent
+                st.session_state[f"mask_number_{i}"] = default_percent
                 st.rerun()
         st.divider()
 
