@@ -178,7 +178,7 @@ if legend_mode == "Manual Way":
             )
 
             # Position entry is below the graph/slider and can also move the red line.
-            position_col, _spacer = st.columns([1, 4])
+            position_col, reset_col, _spacer = st.columns([1, 1, 3])
             with position_col:
                 st.number_input(
                     "Position",
@@ -190,13 +190,15 @@ if legend_mode == "Manual Way":
                     on_change=_number_changed,
                 )
 
-            if st.button("Reset", key=f"reset_{i}"):
-                reset_percent = float(p["default_fraction"] * 100.0)
-                clicks[i] = p["default_fraction"]
-                st.session_state.mask_clicks = clicks
-                st.session_state[f"mask_drag_{i}"] = reset_percent
-                st.session_state[f"mask_number_{i}"] = reset_percent
-                st.rerun()
+            with reset_col:
+                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                if st.button("Reset", key=f"reset_{i}", use_container_width=True):
+                    reset_percent = float(p["default_fraction"] * 100.0)
+                    clicks[i] = p["default_fraction"]
+                    st.session_state.mask_clicks = clicks
+                    st.session_state[f"mask_drag_{i}"] = reset_percent
+                    st.session_state[f"mask_number_{i}"] = reset_percent
+                    st.rerun()
         st.divider()
 
 manual_ready = bool(st.session_state.get("mask_previews"))
