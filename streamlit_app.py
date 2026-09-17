@@ -157,7 +157,7 @@ if legend_mode == "Manual Way":
                 inset_fraction
                 + (selected_percent / 100.0) * (1.0 - 2.0 * inset_fraction)
             )
-            bar_x = int(round(base_image.width * aligned_fraction)) + 7  # shift vertical red line slightly right
+            bar_x = int(round(base_image.width * aligned_fraction)) + 6  # shift vertical red line slightly right
             draw = ImageDraw.Draw(base_image)
             draw.line(
                 [(bar_x, 0), (bar_x, base_image.height)],
