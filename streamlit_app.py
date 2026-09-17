@@ -126,17 +126,28 @@ if legend_mode == "Manual Way":
             if selected_fraction is None:
                 selected_fraction = p["default_fraction"]
 
-            # Read current slider state first so the image reflects its position.
             slider_key = f"mask_drag_{i}"
-            if slider_key not in st.session_state:
-                st.session_state[slider_key] = float(selected_fraction * 100.0)
+            number_key = f"mask_number_{i}"
+            default_percent = float(selected_fraction * 100.0)
 
-            selected_fraction = float(st.session_state[slider_key]) / 100.0
-            clicks[i] = selected_fraction
+            if slider_key not in st.session_state:
+                st.session_state[slider_key] = default_percent
+            if number_key not in st.session_state:
+                st.session_state[number_key] = default_percent
+
+            def _slider_changed(sk=slider_key, nk=number_key):
+                st.session_state[nk] = float(st.session_state[sk])
+
+            def _number_changed(sk=slider_key, nk=number_key):
+                st.session_state[sk] = float(st.session_state[nk])
+
+            selected_percent = float(st.session_state[slider_key])
+            clicks[i] = selected_percent / 100.0
             st.session_state.mask_clicks = clicks
 
+            # Draw the red line at the exact same 0–100 percentage used by the controls.
             base_image = Image.open(io.BytesIO(p["png"])).convert("RGB")
-            bar_x = int(round(base_image.width * selected_fraction))
+            bar_x = int(round(base_image.width * selected_percent / 100.0))
             draw = ImageDraw.Draw(base_image)
             draw.line(
                 [(bar_x, 0), (bar_x, base_image.height)],
@@ -144,52 +155,37 @@ if legend_mode == "Manual Way":
                 width=max(4, base_image.width // 220),
             )
 
+            # Graph and 0–100 slider use the same full width, so their positions align.
             st.image(base_image, width="stretch")
+            st.slider(
+                "Red bar position",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                key=slider_key,
+                on_change=_slider_changed,
+                label_visibility="collapsed",
+            )
 
-            control_col, number_col = st.columns([4, 1])
-
-            with control_col:
-                drag_percent = st.slider(
-                    "Red bar position",
-                    min_value=0.0,
-                    max_value=100.0,
-                    step=0.1,
-                    key=slider_key,
-                    label_visibility="collapsed",
-                )
-
-            number_key = f"mask_number_{i}"
-            if number_key not in st.session_state:
-                st.session_state[number_key] = float(drag_percent)
-
-            # Keep number input synced when the slider changes.
-            if abs(float(st.session_state[number_key]) - float(drag_percent)) > 0.0001:
-                st.session_state[number_key] = float(drag_percent)
-
-            with number_col:
-                typed_percent = st.number_input(
+            # Position entry is below the graph/slider and can also move the red line.
+            position_col, _spacer = st.columns([1, 4])
+            with position_col:
+                st.number_input(
                     "Position",
                     min_value=0.0,
                     max_value=100.0,
                     step=0.1,
+                    format="%.1f",
                     key=number_key,
+                    on_change=_number_changed,
                 )
 
-            # If the user typed a different value, use it and update slider next rerun.
-            final_percent = float(typed_percent)
-            if abs(final_percent - float(drag_percent)) > 0.0001:
-                st.session_state[slider_key] = final_percent
-                st.rerun()
-
-            clicks[i] = final_percent / 100.0
-            st.session_state.mask_clicks = clicks
-
             if st.button("Reset", key=f"reset_{i}"):
-                default_percent = float(p["default_fraction"] * 100.0)
+                reset_percent = float(p["default_fraction"] * 100.0)
                 clicks[i] = p["default_fraction"]
                 st.session_state.mask_clicks = clicks
-                st.session_state[f"mask_drag_{i}"] = default_percent
-                st.session_state[f"mask_number_{i}"] = default_percent
+                st.session_state[f"mask_drag_{i}"] = reset_percent
+                st.session_state[f"mask_number_{i}"] = reset_percent
                 st.rerun()
         st.divider()
 
