@@ -147,7 +147,17 @@ if legend_mode == "Manual Way":
 
             # Draw the red line at the exact same 0–100 percentage used by the controls.
             base_image = Image.open(io.BytesIO(p["png"])).convert("RGB")
-            bar_x = int(round(base_image.width * selected_percent / 100.0))
+            # Match the red line to the CENTER of Streamlit's slider thumb.
+            # The thumb center travels on an inset track rather than edge-to-edge.
+            # ~15 px at each side matches the rendered Streamlit slider geometry.
+            thumb_inset_px = 15.0
+            display_w = float(p.get("display_width", base_image.width))
+            inset_fraction = thumb_inset_px / max(1.0, display_w)
+            aligned_fraction = (
+                inset_fraction
+                + (selected_percent / 100.0) * (1.0 - 2.0 * inset_fraction)
+            )
+            bar_x = int(round(base_image.width * aligned_fraction))
             draw = ImageDraw.Draw(base_image)
             draw.line(
                 [(bar_x, 0), (bar_x, base_image.height)],
