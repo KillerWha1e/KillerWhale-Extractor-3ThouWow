@@ -8,20 +8,6 @@ import killerwhale_backend as kw
 
 st.set_page_config(page_title="KillerWhale Extractor 3ThouWow", page_icon="🐋", layout="centered")
 st.markdown("""<h1 style="font-size:2.3rem;white-space:nowrap;">🐋 KillerWhale Extractor 3ThouWow 🐋</h1>""", unsafe_allow_html=True)
-st.markdown(
-    """
-    <style>
-    /* Keep Streamlit column rows horizontal on desktop instead of stacking them. */
-    div[data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important;
-    }
-    div[data-testid="column"] {
-        min-width: 0 !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 st.markdown("#### Legend Masking")
 legend_mode = st.radio("Masking method", ["KillerWhale Way", "Manual Way"],
@@ -192,36 +178,36 @@ if legend_mode == "Manual Way":
             )
 
             # Position entry is below the graph/slider and can also move the red line.
-            # Force Position input + Reset onto one physical row.
-            # The label is in its own row so it cannot affect widget alignment.
-            st.markdown("Position")
-            position_col, reset_col, _spacer = st.columns([1.35, 0.75, 2.9], gap="small")
+            # Keep Position and Reset together in a dedicated container.
+            # Use fixed-width columns so Reset cannot get pushed to the next row.
+            with st.container():
+                st.markdown("Position")
+                position_col, reset_col = st.columns([2, 1], gap="small")
 
-            with position_col:
-                st.number_input(
-                    "Position value",
-                    min_value=0.0,
-                    max_value=100.0,
-                    step=0.1,
-                    format="%.1f",
-                    key=number_key,
-                    on_change=_number_changed,
-                    label_visibility="collapsed",
-                )
+                with position_col:
+                    st.number_input(
+                        "Position value",
+                        min_value=0.0,
+                        max_value=100.0,
+                        step=0.1,
+                        format="%.1f",
+                        key=number_key,
+                        on_change=_number_changed,
+                        label_visibility="collapsed",
+                    )
 
-            with reset_col:
-                # Render immediately in the adjacent Streamlit column.
-                if st.button(
-                    "Reset",
-                    key=f"reset_{i}",
-                    use_container_width=True,
-                ):
-                    reset_percent = float(p["default_fraction"] * 100.0)
-                    clicks[i] = p["default_fraction"]
-                    st.session_state.mask_clicks = clicks
-                    st.session_state[f"mask_drag_{i}"] = reset_percent
-                    st.session_state[f"mask_number_{i}"] = reset_percent
-                    st.rerun()
+                with reset_col:
+                    if st.button(
+                        "Reset",
+                        key=f"reset_{i}",
+                        use_container_width=True,
+                    ):
+                        reset_percent = float(p["default_fraction"] * 100.0)
+                        clicks[i] = p["default_fraction"]
+                        st.session_state.mask_clicks = clicks
+                        st.session_state[f"mask_drag_{i}"] = reset_percent
+                        st.session_state[f"mask_number_{i}"] = reset_percent
+                        st.rerun()
         st.divider()
 
 manual_ready = bool(st.session_state.get("mask_previews"))
