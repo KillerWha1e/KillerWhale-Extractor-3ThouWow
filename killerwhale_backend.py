@@ -2548,9 +2548,7 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
                     save_graph(graph_page, graph_path)
 
                     results.append({
-                        "source_name": pdf_path.name + (
-                            f" — Page {page_no}" if len(doc) > 1 else ""
-                        ),
+                        "source_name": pdf_path.name,
                         "data_type": data_type,
                         "rows": rows,
                         "graph_path": graph_path,
