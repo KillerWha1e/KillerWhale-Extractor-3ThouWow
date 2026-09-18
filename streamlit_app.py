@@ -14,35 +14,39 @@ st.set_page_config(
 
 
 # Left-side animated GIF.
-# Put the GIF in your GitHub repo at: static/spiderman_side.gif
+# Requires static/spiderman_side.gif and static serving enabled.
 st.markdown(
     """
-    <style>
-    body::before {
-        content: "";
-        position: fixed;
-        left: 4vw;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 25vw;
-        height: 80vh;
-        background-image: url("app/static/spiderman_side.gif");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
-        z-index: 999;
-        pointer-events: none;
-    }
+<style>
+[data-testid="stAppViewContainer"]::before {
+    content: "";
+    position: fixed;
+    left: calc(50% - 43rem);
+    top: 50%;
+    transform: translateY(-50%);
 
-    @media (max-width: 800px) {
-        body::before {
-            display: none;
-        }
-    }
-    </style>
-    """,
+    /* rem scales with browser page zoom */
+    width: 22rem;
+    height: 38rem;
+
+    background-image: url("./app/static/spiderman_side.gif");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+
+    z-index: 5;
+    pointer-events: none;
+}
+
+[data-testid="stMainBlockContainer"] {
+    position: relative;
+    z-index: 10;
+}
+</style>
+""",
     unsafe_allow_html=True,
 )
+
 
 st.markdown(
     """<h1 style="font-size:2.3rem;white-space:nowrap;">
