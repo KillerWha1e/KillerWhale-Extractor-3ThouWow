@@ -4,7 +4,6 @@ import hashlib
 import streamlit as st
 from PIL import Image, ImageDraw
 import io
-import base64
 import killerwhale_backend as kw
 
 st.set_page_config(
@@ -14,42 +13,36 @@ st.set_page_config(
 )
 
 
-# Left-side animated GIF decoration.
-# Keep spiderman_side.gif in the same GitHub folder as this streamlit_app.py.
-_GIF_PATH = Path(__file__).with_name("spiderman_side.gif")
-if _GIF_PATH.exists():
-    _gif_b64 = base64.b64encode(_GIF_PATH.read_bytes()).decode("utf-8")
-    st.markdown(
-        f"""
-        <style>
-        .killerwhale-left-gif {{
-            position: fixed;
-            left: 1.5vw;
-            top: 50%;
-            transform: translateY(-50%);
-            width: clamp(180px, 20vw, 380px);
-            max-height: 80vh;
-            object-fit: contain;
-            z-index: 999;
-            pointer-events: none;
-        }}
+# Left-side animated GIF.
+# Put the GIF in your GitHub repo at: static/spiderman_side.gif
+st.markdown(
+    """
+    <style>
+    body::before {
+        content: "";
+        position: fixed;
+        left: 1.5vw;
+        top: 50%;
+        transform: translateY(-50%);
+        width: clamp(180px, 20vw, 380px);
+        height: 80vh;
+        background-image: url("app/static/spiderman_side.gif");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        z-index: 999;
+        pointer-events: none;
+    }
 
-        /* Only hide on genuinely small/mobile screens. */
-        @media (max-width: 800px) {{
-            .killerwhale-left-gif {{
-                display: none;
-            }}
-        }}
-        </style>
-
-        <img
-            class="killerwhale-left-gif"
-            src="data:image/gif;base64,{_gif_b64}"
-            alt=""
-        >
-        """,
-        unsafe_allow_html=True,
-    )
+    @media (max-width: 800px) {
+        body::before {
+            display: none;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     """<h1 style="font-size:2.3rem;white-space:nowrap;">
