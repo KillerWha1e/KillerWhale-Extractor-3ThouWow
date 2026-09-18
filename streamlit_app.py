@@ -4,6 +4,7 @@ import hashlib
 import streamlit as st
 from PIL import Image, ImageDraw
 import io
+import base64
 import killerwhale_backend as kw
 
 st.set_page_config(
@@ -11,6 +12,41 @@ st.set_page_config(
     page_icon="🐋",
     layout="centered"
 )
+
+# Left-side animated GIF decoration.
+# The GIF is embedded directly so no separate GIF file is required on GitHub.
+_GIF_PATH = Path(__file__).with_name("spiderman_side.gif")
+if _GIF_PATH.exists():
+    _gif_b64 = base64.b64encode(_GIF_PATH.read_bytes()).decode("utf-8")
+    st.markdown(
+        f"""
+        <style>
+        .killerwhale-left-gif {{
+            position: fixed;
+            left: 2.5vw;
+            top: 50%;
+            transform: translateY(-50%);
+            width: min(24vw, 430px);
+            height: auto;
+            z-index: 0;
+            pointer-events: none;
+        }}
+
+        @media (max-width: 1350px) {{
+            .killerwhale-left-gif {{
+                display: none;
+            }}
+        }}
+        </style>
+
+        <img
+            class="killerwhale-left-gif"
+            src="data:image/gif;base64,{_gif_b64}"
+            alt=""
+        >
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.markdown(
     """<h1 style="font-size:2.3rem;white-space:nowrap;">
