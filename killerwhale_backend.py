@@ -646,30 +646,23 @@ def graph_clip(page):
         bottom = max(top + 1, min(bottom, h))
         return fitz.Rect(left, top, right, bottom)
 
-    # Multi-page RE layout: the graph can be on its own page while the
-    # EMI Final Results table is on a later page. Crop the graph page by
-    # content instead of falling back to the original one-page crop.
+    # Multi-page RE layout: the graph is on one page and the EMI Final Results
+    # table is on a later page. Treat the graph page like the upper half of the
+    # normal one-page new-chamber report. In other words, use the SAME crop
+    # geometry as the one-page layout; only the table itself lives elsewhere.
     if "Radiated Emission Test Result" in text and "EMI Final Results" not in text:
         title_hits = page.search_for("Radiated Emission Test Result")
         base_top = (max(r.y1 for r in title_hits) + 2) if title_hits else h * 0.145
 
-        range_hits = []
-        for range_text in ("30M-1G", "1G-6G", "1G-18G", "18G-40G"):
-            range_hits.extend(page.search_for(range_text))
-
-        # The lowest frequency-range occurrence is normally in the legend.
-        # Keep a small amount below it, but do not include the large blank
-        # lower half of the page.
-        if range_hits:
-            legend_anchor = max(range_hits, key=lambda r: r.y1)
-            base_bottom = legend_anchor.y1 + 18
-        else:
-            base_bottom = h * 0.50
+        # On a normal one-page report the EMI Final Results heading starts at
+        # about 51.5% of the page height. Use that virtual boundary here so an
+        # extra blank lower half does not change the graph snip.
+        base_bottom = h * 0.515
 
         left = w * NEW_RE_CROP_LEFT
         right = w * NEW_RE_CROP_RIGHT
         top = base_top + NEW_RE_CROP_TOP_ADJUST
-        bottom = base_bottom
+        bottom = base_bottom - NEW_RE_CROP_BOTTOM_ADJUST
 
         left = max(0, min(left, w - 2))
         right = max(left + 1, min(right, w))
