@@ -123,6 +123,8 @@ def _detect_range_rank(name):
         return 1
     if "1G-18G" in name:
         return 2
+    if "18G-40G" in name:
+        return 3
 
     return 99
 
@@ -175,6 +177,8 @@ def _result_range_rank(result):
             return 1  # 1G-6G
         if lo >= 999.0 and hi <= 18000.5:
             return 2  # 1G-18G
+        if lo >= 17999.0 and hi <= 40000.5:
+            return 3  # 18G-40G
 
     return _detect_range_rank(result.get("source_name", ""))
 
@@ -356,9 +360,114 @@ def parse_numeric_row(line):
     return None, None
 
 
-def extract_rows(page):
-    """Extract Final Result rows and automatically detect KC or EN layout."""
+def _clean_re_header(value):
+    return re.sub(r"\s+", " ", str(value or "").replace("\n", " ")).strip().upper()
+
+
+def _extract_new_chamber_table_rows(page):
+    """Extract the new Rohde & Schwarz RE tables by header name.
+
+    The new chamber changes column order between 1G-18G and 18G-40G, so
+    mapping by header is safer than assuming a fixed printed order.
+    """
     text = page.get_text("text", sort=True)
+    if "EMI Final Results" not in text:
+        return None, []
+
+    try:
+        tables = page.find_tables().tables
+    except Exception:
+        return None, []
+
+    for table in tables:
+        data = table.extract()
+        if not data or len(data) < 2:
+            continue
+        headers = [_clean_re_header(h) for h in data[0]]
+        if not any("FREQUENCY" in h for h in headers) or not any("POLARIZATION" in h for h in headers):
+            continue
+
+        def idx_contains(*terms):
+            for i, h in enumerate(headers):
+                if all(term in h for term in terms):
+                    return i
+            return None
+
+        freq_i = idx_contains("FREQUENCY")
+        pol_i = idx_contains("POLARIZATION")
+        height_i = idx_contains("ANTENNA", "HEIGHT")
+        angle_i = idx_contains("AZIMUTH")
+
+        qpk_raw_i = idx_contains("QPK", "RAW")
+        qpk_level_i = idx_contains("QPK", "LEVEL")
+        qpk_limit_i = idx_contains("QPK", "LIMIT")
+        qpk_margin_i = idx_contains("QPK", "MARGIN")
+        corr_i = idx_contains("CORRECTION")
+
+        if None not in (freq_i, pol_i, qpk_raw_i, corr_i, qpk_level_i, qpk_limit_i, qpk_margin_i, height_i, angle_i):
+            rows = []
+            for n, cells in enumerate(data[1:], 1):
+                try:
+                    rows.append([
+                        n, _re_float(cells[freq_i]), str(cells[pol_i]).strip().upper(),
+                        _re_float(cells[qpk_raw_i]), _re_float(cells[corr_i]),
+                        _re_float(cells[qpk_level_i]), _re_float(cells[qpk_limit_i]),
+                        _re_float(cells[qpk_margin_i]), _re_float(cells[height_i]),
+                        _re_float(cells[angle_i]),
+                    ])
+                except (TypeError, ValueError, IndexError):
+                    continue
+            if rows:
+                return "EN_QP", rows
+
+        pk_raw_i = idx_contains("PK+", "RAW")
+        cav_raw_i = idx_contains("CAV", "RAW")
+        pk_level_i = idx_contains("PK+", "LEVEL")
+        cav_level_i = idx_contains("CAV", "LEVEL")
+        pk_limit_i = idx_contains("PK+", "LIMIT")
+        cav_limit_i = idx_contains("CAV", "LIMIT")
+        pk_margin_i = idx_contains("PK+", "MARGIN")
+        cav_margin_i = idx_contains("CAV", "MARGIN")
+
+        needed = (freq_i, pol_i, cav_raw_i, pk_raw_i, corr_i, cav_level_i, pk_level_i,
+                  cav_limit_i, pk_limit_i, cav_margin_i, pk_margin_i, height_i, angle_i)
+        if None not in needed:
+            rows = []
+            for n, cells in enumerate(data[1:], 1):
+                try:
+                    rows.append([
+                        n, _re_float(cells[freq_i]), str(cells[pol_i]).strip().upper(),
+                        _re_float(cells[cav_raw_i]), _re_float(cells[pk_raw_i]),
+                        _re_float(cells[corr_i]), _re_float(cells[cav_level_i]),
+                        _re_float(cells[pk_level_i]), _re_float(cells[cav_limit_i]),
+                        _re_float(cells[pk_limit_i]), _re_float(cells[cav_margin_i]),
+                        _re_float(cells[pk_margin_i]), _re_float(cells[height_i]),
+                        _re_float(cells[angle_i]),
+                    ])
+                except (TypeError, ValueError, IndexError):
+                    continue
+            if rows:
+                return "KC_AVPK", rows
+
+    return None, []
+
+
+def extract_rows(page):
+    """Extract RE rows only from a page that actually contains a Final Results table.
+
+    RE reports may include extra Hardware Setup / information pages, so do not
+    assume a fixed page number and do not try to parse those extra pages as data.
+    """
+    text = page.get_text("text", sort=True)
+    if "EMI Final Results" not in text and "Final Result" not in text:
+        return None, []
+
+    # Prefer header-based extraction for the newer chamber tables. This supports
+    # 30M-1G, 1G-18G, and 18G-40G even when the printed column order changes.
+    table_type, table_rows = _extract_new_chamber_table_rows(page)
+    if table_rows:
+        return table_type, table_rows
+
     detected_type = None
     rows = []
 
@@ -397,11 +506,12 @@ NEW_RE_MATH_TOLERANCE = 0.06
 
 
 def _is_new_re_chamber(page):
-    """Return True only for the alternate/new RE chamber report layout."""
+    """Return True for the alternate/new Rohde & Schwarz RE result-table pages."""
     text = page.get_text("text", sort=True)
     return (
-        "Radiated Emission Test Result" in text
-        and "EMI Final Results" in text
+        "EMI Final Results" in text
+        and "Frequency" in text
+        and ("Raw Lvl" in text or "Raw Lvl" in text.replace("\n", " "))
     )
 
 
@@ -562,7 +672,7 @@ def graph_clip(page):
 def save_graph(page, out_png, dpi=220):
     """
     Save the cropped graph and remove anything appearing AFTER the
-    frequency range ('1G-6G' or '1G-18G') on the Class A legend line.
+    frequency range ('30M-1G', '1G-6G', '1G-18G', or '18G-40G') on the Class A legend line.
 
     This fixes partial leftovers such as:
         <EN55032 Class A 1G-6G 23
@@ -586,11 +696,11 @@ def save_graph(page, out_png, dpi=220):
 
     # Find the frequency-range anchor in the legend.
     # 30M-1G is used by VCCI / ICES / FCC / EN55032 low-frequency RE graphs.
-    # Higher-frequency graphs commonly use 1G-6G or 1G-18G.
+    # Higher-frequency graphs commonly use 1G-6G, 1G-18G, or 18G-40G.
     # Erase EVERYTHING to the right of the detected range on that line,
     # removing AC-power text such as 100VAC / 240VAC and anything after it.
     anchors = []
-    for range_text in ("30M-1G", "1G-6G", "1G-18G"):
+    for range_text in ("30M-1G", "1G-6G", "1G-18G", "18G-40G"):
         anchors.extend(page.search_for(range_text))
 
     # Work on the rendered RE image so we can remove the right-side graph border.
@@ -2422,7 +2532,20 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
 
                     graph_count += 1
                     graph_path = temp_dir / f"graph_{graph_count}.png"
-                    save_graph(page, graph_path)
+
+                    # New-chamber 1G+ reports place the graph on page 1 and the
+                    # EMI Final Results table on page 2. Use the nearest earlier
+                    # Radiated Emission Test Result page as the graph source.
+                    graph_page = page
+                    if "Radiated Emission Test Result" not in page_text:
+                        for prior_index in range(page_no - 2, -1, -1):
+                            prior_page = doc[prior_index]
+                            prior_text = prior_page.get_text("text", sort=True)
+                            if "Radiated Emission Test Result" in prior_text:
+                                graph_page = prior_page
+                                break
+
+                    save_graph(graph_page, graph_path)
 
                     results.append({
                         "source_name": pdf_path.name + (
