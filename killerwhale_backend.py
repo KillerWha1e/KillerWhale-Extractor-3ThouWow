@@ -594,6 +594,34 @@ def check_and_fix_new_re_math(data_type, rows):
     return fixed_rows, correction_count, correction_notes
 
 
+def check_and_fix_re_height(data_type, rows, correction_notes=None):
+    """Clamp RE antenna height to the 100.0 cm minimum and record it in Software Math Check."""
+    notes = list(correction_notes or [""] * len(rows))
+    if len(notes) < len(rows):
+        notes.extend([""] * (len(rows) - len(notes)))
+
+    height_index = 8 if data_type == "EN_QP" else 12 if data_type == "KC_AVPK" else None
+    if height_index is None:
+        return rows, 0, notes
+
+    fixed_rows = []
+    correction_count = 0
+    for i, source_row in enumerate(rows):
+        row = list(source_row)
+        try:
+            height = float(row[height_index])
+            if height < 100.0:
+                row[height_index] = 100.0
+                height_note = f"Height: {height:.1f} -> 100.0 cm"
+                notes[i] = f"{notes[i]}; {height_note}" if notes[i] else height_note
+                correction_count += 1
+        except (TypeError, ValueError, IndexError):
+            pass
+        fixed_rows.append(row)
+
+    return fixed_rows, correction_count, notes
+
+
 # ============================================================
 # ALTERNATE / NEW CHAMBER RE GRAPH CROP SETTINGS
 # ============================================================
@@ -2542,6 +2570,15 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
                     rows, math_corrections, math_notes = check_and_fix_new_re_math(data_type, rows)
                 elif rows:
                     math_notes = [""] * len(rows)
+
+                # Antenna height sanity check for every RE result:
+                # anything below the 100.0 cm minimum is corrected to 100.0 cm
+                # and documented in the Software Math Check column.
+                if rows and data_type:
+                    rows, height_corrections, math_notes = check_and_fix_re_height(
+                        data_type, rows, math_notes
+                    )
+                    math_corrections += height_corrections
 
                 if not rows and "Final Result" not in page_text:
                     continue
