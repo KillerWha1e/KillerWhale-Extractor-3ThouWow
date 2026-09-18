@@ -21,11 +21,17 @@ st.markdown(
 [data-testid="stAppViewContainer"]::before {
     content: "";
     position: fixed;
-    left: calc(50% - 43rem);
+
+    /*
+      Anchor Spider-Man's RIGHT edge just to the LEFT
+      of Streamlit's centered main content.
+    */
+    right: calc(50% + 23rem);
+    left: auto;
     top: 50%;
     transform: translateY(-50%);
 
-    /* rem scales with browser page zoom */
+    /* Scales with browser page zoom */
     width: 22rem;
     height: 38rem;
 
