@@ -13,8 +13,9 @@ st.set_page_config(
     layout="centered"
 )
 
+
 # Left-side animated GIF decoration.
-# The GIF is embedded directly so no separate GIF file is required on GitHub.
+# Keep spiderman_side.gif in the same GitHub folder as this streamlit_app.py.
 _GIF_PATH = Path(__file__).with_name("spiderman_side.gif")
 if _GIF_PATH.exists():
     _gif_b64 = base64.b64encode(_GIF_PATH.read_bytes()).decode("utf-8")
@@ -23,16 +24,18 @@ if _GIF_PATH.exists():
         <style>
         .killerwhale-left-gif {{
             position: fixed;
-            left: 2.5vw;
+            left: 1.5vw;
             top: 50%;
             transform: translateY(-50%);
-            width: min(24vw, 430px);
-            height: auto;
-            z-index: 0;
+            width: clamp(180px, 20vw, 380px);
+            max-height: 80vh;
+            object-fit: contain;
+            z-index: 999;
             pointer-events: none;
         }}
 
-        @media (max-width: 1350px) {{
+        /* Only hide on genuinely small/mobile screens. */
+        @media (max-width: 800px) {{
             .killerwhale-left-gif {{
                 display: none;
             }}
