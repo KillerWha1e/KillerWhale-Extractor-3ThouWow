@@ -28,8 +28,11 @@ st.markdown(
     transform: translateY(-50%);
     width: 400px;
     height: 100vh;
-    background: url("./app/static/spiderman_side.gif") center center / contain no-repeat;
-    z-index: 5;
+    background-image: url("./app/static/spiderman_side.gif");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    z-index: 1000;
     pointer-events: none;
 }
 
