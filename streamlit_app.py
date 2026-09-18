@@ -81,7 +81,7 @@ if st.session_state.get("upload_signature") != signature:
             del st.session_state[_k]
 
 if legend_mode == "Manual Way":
-    if st.button("PREPARE MANUAL SNIPS", use_container_width=True):
+    if st.button("Manual Way", use_container_width=True):
         if not (re_files or ce_files or oats_files):
             st.warning("Select files first.")
         elif bool(ce_pdfs) != bool(ce_excels):
