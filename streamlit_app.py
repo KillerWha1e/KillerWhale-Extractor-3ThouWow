@@ -198,6 +198,7 @@ if legend_mode == "Manual Way":
 
     if st.button(
         "Manual Way",
+        type="primary",
         use_container_width=True
     ):
 
@@ -279,8 +280,6 @@ if legend_mode == "Manual Way":
                 )
             )
 
-            # Backend titles may include the PDF name.
-            # Strip the old instruction text.
             pdf_label = preview_title.replace(
                 "RE Legend Mask — drag red bar, then Apply",
                 ""
@@ -288,9 +287,6 @@ if legend_mode == "Manual Way":
 
 
             if not pdf_label:
-
-                # Fall back to the uploaded PDF order
-                # if the backend title is generic.
 
                 all_pdf_names = (
                     [f.name for f in (re_files or [])]
@@ -309,11 +305,6 @@ if legend_mode == "Manual Way":
                 f"**{pdf_label}**"
             )
 
-
-            # Stable browser Manual Way:
-            # display the actual graph with a red bar.
-            # A draggable control directly underneath
-            # moves that bar.
 
             selected_fraction = clicks[i]
 
@@ -382,22 +373,10 @@ if legend_mode == "Manual Way":
             )
 
 
-            # Draw the red line at the exact same
-            # 0–100 percentage used by the controls.
-
             base_image = Image.open(
                 io.BytesIO(p["png"])
             ).convert("RGB")
 
-
-            # Match the red line to the CENTER
-            # of Streamlit's slider thumb.
-            #
-            # The thumb center travels on an inset
-            # track rather than edge-to-edge.
-            #
-            # ~15 px at each side matches the
-            # rendered Streamlit slider geometry.
 
             thumb_inset_px = 15.0
 
@@ -464,9 +443,6 @@ if legend_mode == "Manual Way":
             )
 
 
-            # Graph and 0–100 slider
-            # use the same full width.
-
             st.image(
                 base_image,
                 width="stretch"
@@ -483,8 +459,6 @@ if legend_mode == "Manual Way":
                 label_visibility="collapsed",
             )
 
-
-            # Position entry below graph/slider.
 
             st.markdown(
                 "Position"
