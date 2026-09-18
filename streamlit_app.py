@@ -14,44 +14,35 @@ st.set_page_config(
 
 
 # Left-side animated GIF.
-# Requires:
-#   static/spiderman_side.gif
-#   .streamlit/config.toml with enableStaticServing = true
+# Put the GIF in your GitHub repo at: static/spiderman_side.gif
 st.markdown(
     """
-<style>
-[data-testid="stAppViewContainer"]::before {
-    content: "";
-    position: fixed;
-    left: 300px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 400px;
-    height: 60vh;
-    background-image: url("./app/static/spiderman_side.gif");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    z-index: 1000;
-    pointer-events: none;
-}
-
-[data-testid="stMainBlockContainer"] {
-    position: relative;
-    z-index: 10;
-}
-
-@media (max-width: 1350px) {
-    [data-testid="stAppViewContainer"]::before {
-        display: none;
+    <style>
+    body::before {
+        content: "";
+        position: fixed;
+        left: 4vw;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 25vw;
+        height: 80vh;
+        background-image: url("app/static/spiderman_side.gif");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        z-index: 999;
+        pointer-events: none;
     }
-}
-</style>
-""",
+
+    @media (max-width: 800px) {
+        body::before {
+            display: none;
+        }
+    }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
-
-
 
 st.markdown(
     """<h1 style="font-size:2.3rem;white-space:nowrap;">
