@@ -23,11 +23,11 @@ st.markdown(
 [data-testid="stAppViewContainer"]::before {
     content: "";
     position: fixed;
-    left: 18px;
+    left: 80px;
     top: 50%;
     transform: translateY(-50%);
-    width: 260px;
-    height: 70vh;
+    width: 400px;
+    height: 80vh;
     background: url("./app/static/spiderman_side.gif") center center / contain no-repeat;
     z-index: 5;
     pointer-events: none;
