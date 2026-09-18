@@ -512,7 +512,7 @@ if legend_mode == "KillerWhale Way":
 
     st.markdown(
         """
-**Note: Auto Snip Order**  
+**Note: Auto Snipping Order**  
 **RE:** 30M-1G → 1G-6G → 1G-18G  
 **CE:** AC Line 1-20 → AC Line → IPMI0-20 → IPMI → ETH0-20 → Tel Line
         """
