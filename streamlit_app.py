@@ -27,7 +27,7 @@ st.markdown(
     top: 50%;
     transform: translateY(-50%);
     width: 400px;
-    height: 200vh;
+    height: 400vh;
     background: url("./app/static/spiderman_side.gif") center center / contain no-repeat;
     z-index: 5;
     pointer-events: none;
