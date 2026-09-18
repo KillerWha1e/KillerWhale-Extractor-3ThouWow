@@ -26,7 +26,7 @@ st.markdown(
       Anchor Spider-Man's RIGHT edge just to the LEFT
       of Streamlit's centered main content.
     */
-    right: calc(50% + 28rem);
+    right: calc(50% + 40rem);
     left: auto;
     top: 50%;
     transform: translateY(-50%);
