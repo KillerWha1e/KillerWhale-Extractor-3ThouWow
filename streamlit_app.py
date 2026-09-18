@@ -180,34 +180,26 @@ if legend_mode == "Manual Way":
             # Position entry is below the graph/slider and can also move the red line.
             # Keep Position and Reset together in a dedicated container.
             # Use fixed-width columns so Reset cannot get pushed to the next row.
-            with st.container():
-                st.markdown("Position")
-                position_col, reset_col = st.columns([2, 1], gap="small")
-
-                with position_col:
-                    st.number_input(
-                        "Position value",
-                        min_value=0.0,
-                        max_value=100.0,
-                        step=0.1,
-                        format="%.1f",
-                        key=number_key,
-                        on_change=_number_changed,
-                        label_visibility="collapsed",
-                    )
-
-                with reset_col:
-                    if st.button(
-                        "Reset",
-                        key=f"reset_{i}",
-                        use_container_width=True,
-                    ):
-                        reset_percent = float(p["default_fraction"] * 100.0)
-                        clicks[i] = p["default_fraction"]
-                        st.session_state.mask_clicks = clicks
-                        st.session_state[f"mask_drag_{i}"] = reset_percent
-                        st.session_state[f"mask_number_{i}"] = reset_percent
-                        st.rerun()
+            st.markdown("Position")
+            with st.container(horizontal=True, horizontal_alignment="left", vertical_alignment="center"):
+                st.number_input(
+                    "Position value",
+                    min_value=0.0,
+                    max_value=100.0,
+                    step=0.1,
+                    format="%.1f",
+                    key=number_key,
+                    on_change=_number_changed,
+                    label_visibility="collapsed",
+                    width=190,
+                )
+                if st.button("Reset", key=f"reset_{i}", width=90):
+                    reset_percent = float(p["default_fraction"] * 100.0)
+                    clicks[i] = p["default_fraction"]
+                    st.session_state.mask_clicks = clicks
+                    st.session_state[f"mask_drag_{i}"] = reset_percent
+                    st.session_state[f"mask_number_{i}"] = reset_percent
+                    st.rerun()
         st.divider()
 
 manual_ready = bool(st.session_state.get("mask_previews"))
