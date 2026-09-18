@@ -420,47 +420,14 @@ if legend_mode == "Manual Way":
             ).convert("RGB")
 
 
-            thumb_inset_px = 15.0
-
-            display_w = float(
-                p.get(
-                    "display_width",
+            # Manual Way: use the exact same X fraction for the preview red bar
+            # and for the backend mask. No slider-thumb inset and no extra pixel offset.
+            # This makes the red line the actual cut/mask position.
+            bar_x = int(
+                round(
                     base_image.width
+                    * (selected_percent / 100.0)
                 )
-            )
-
-            inset_fraction = (
-                thumb_inset_px
-                /
-                max(
-                    1.0,
-                    display_w
-                )
-            )
-
-
-            aligned_fraction = (
-                inset_fraction
-                +
-                (selected_percent / 100.0)
-                *
-                (
-                    1.0
-                    -
-                    2.0 * inset_fraction
-                )
-            )
-
-
-            bar_x = (
-                int(
-                    round(
-                        base_image.width
-                        *
-                        aligned_fraction
-                    )
-                )
-                + 3
             )
 
 
