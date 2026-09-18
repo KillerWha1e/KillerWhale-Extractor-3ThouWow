@@ -23,7 +23,7 @@ st.markdown(
 [data-testid="stAppViewContainer"]::before {
     content: "";
     position: fixed;
-    left: 200px;
+    left: 300px;
     top: 50%;
     transform: translateY(-50%);
     width: 400px;
