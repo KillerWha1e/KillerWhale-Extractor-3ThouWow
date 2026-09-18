@@ -9,7 +9,7 @@ import killerwhale_backend as kw
 st.set_page_config(page_title="KillerWhale Extractor 3ThouWow", page_icon="🐋", layout="centered")
 st.markdown("""<h1 style="font-size:2.3rem;white-space:nowrap;">🐋 KillerWhale Extractor 3ThouWow 🐋</h1>""", unsafe_allow_html=True)
 
-legend_mode = st.radio("Masking method", ["#################### KillerWhale Way", "Manual Way"],
+legend_mode = st.radio("Masking method", "KillerWhale Way", "Manual Way"],
                        horizontal=True, label_visibility="collapsed")
 st.subheader("RE")
 re_files = st.file_uploader("RE PDF(s)", type=["pdf"], accept_multiple_files=True, key="re_files")
