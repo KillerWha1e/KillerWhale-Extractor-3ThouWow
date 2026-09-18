@@ -457,6 +457,17 @@ if legend_mode == "Manual Way":
                 width="stretch"
             )
 
+            st.markdown(
+            """
+            <style>
+            div[data-testid="stSlider"] {
+                padding-left: 0px !important;
+                padding-right: 0px !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+            )
 
             st.slider(
                 "Red bar position",
