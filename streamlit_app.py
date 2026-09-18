@@ -12,9 +12,6 @@ st.markdown("""<h1 style="font-size:2.3rem;white-space:nowrap;">🐋 KillerWhale
 st.markdown("#### Legend Masking")
 legend_mode = st.radio("Masking method", ["KillerWhale Way", "Manual Way"],
                        horizontal=True, label_visibility="collapsed")
-if legend_mode == "Manual Way":
-    st.caption("Old-style Manual Way: prepare the previews, then drag the control under each graph to move the red cut bar.")
-
 st.subheader("RE")
 re_files = st.file_uploader("RE PDF(s)", type=["pdf"], accept_multiple_files=True, key="re_files")
 
@@ -23,13 +20,12 @@ ce_files = st.file_uploader(
     "CE PDF + Excel file(s)",
     type=["pdf", "xlsx", "xlsm"],
     accept_multiple_files=True,
-    key="ce_files",
-    help="Select the matching CE PDF and Excel files together in this one row."
+    key="ce_files"
 )
 
 st.subheader("Recalculation")
 oats_files = st.file_uploader("Recalculation PDF(s)", type=["pdf"], accept_multiple_files=True, key="oats_files")
-oats_class = st.radio("Recalculation Class", ["A", "B"], horizontal=True, format_func=lambda x: f"Class {x}")
+oats_class = st.radio("Recalculation Class", ["A", "B"], horizontal=True, format_func=lambda x: f"Class {x}", label_visibility="collapsed")
 st.divider()
 
 def split_ce(files):
