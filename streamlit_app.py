@@ -417,7 +417,7 @@ if legend_mode == "Manual Way":
             # then use that SAME mapped fraction for both the red line and backend mask.
             ui_fraction = selected_percent / 100.0
 
-            slider_track_inset_px = 12.0
+            slider_track_inset_px = 9.0
             display_w = float(
                 p.get("display_width", base_image.width)
             )
