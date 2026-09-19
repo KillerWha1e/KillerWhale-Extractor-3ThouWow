@@ -406,27 +406,38 @@ if legend_mode == "Manual Way":
             )
 
 
-            clicks[i] = (
-                selected_percent / 100.0
-            )
-
-            st.session_state.mask_clicks = (
-                clicks
-            )
-
-
             base_image = Image.open(
                 io.BytesIO(p["png"])
             ).convert("RGB")
 
 
-            # Manual Way: use the exact same X fraction for the preview red bar
-            # and for the backend mask. No slider-thumb inset and no extra pixel offset.
-            # This makes the red line the actual cut/mask position.
+            # Manual Way:
+            # Streamlit's slider thumb does not travel across the full widget width.
+            # Map the UI slider position to the same inset track used visually,
+            # then use that SAME mapped fraction for both the red line and backend mask.
+            ui_fraction = selected_percent / 100.0
+
+            slider_track_inset_px = 15.0
+            display_w = float(
+                p.get("display_width", base_image.width)
+            )
+            inset_fraction = (
+                slider_track_inset_px / max(1.0, display_w)
+            )
+
+            aligned_fraction = (
+                inset_fraction
+                + ui_fraction
+                * (1.0 - 2.0 * inset_fraction)
+            )
+
+            # Backend will mask at exactly the same place as the red line.
+            clicks[i] = aligned_fraction
+            st.session_state.mask_clicks = clicks
+
             bar_x = int(
                 round(
-                    base_image.width
-                    * (selected_percent / 100.0)
+                    base_image.width * aligned_fraction
                 )
             )
 
