@@ -461,7 +461,12 @@ if legend_mode == "Manual Way":
             """
             <style>
             div[data-testid="stSlider"] {
-                padding-left: 16px !important;
+                padding-left: 0px !important;
+                padding-right: 0px !important;
+            }
+
+            div[data-testid="stSlider"] [data-baseweb="slider"] {
+                padding-left: 0px !important;
                 padding-right: 0px !important;
             }
             </style>
