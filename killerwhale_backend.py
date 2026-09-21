@@ -2290,14 +2290,12 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
         right = page_w - 25.0
 
         if report_type == "Harmonic":
-            # Harmonic page 2:
-            # Start just above the Voltage/Current summary and end just
-            # below the Order 1-40 table / "N/A : Not Apply" note.
-            # This intentionally removes the large report title above it
-            # and the unused white area below it.
+            # Harmonic page 2: pure PDF snip only.
+            # Excel writes the PDF filename as the large title above the image,
+            # exactly like the RE sections. Do not recreate/edit any report data.
             left = 75.0
             right = min(page_w - 55.0, 540.0)
-            top = 112.0
+            top = 116.0
             bottom = min(page_h - 160.0, 682.0)
         elif report_type == "Plt, Pst, dmax":
             top = 35.0
