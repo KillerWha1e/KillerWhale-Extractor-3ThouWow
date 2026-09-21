@@ -2297,7 +2297,7 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
             # and the unused white area below it.
             left = 75.0
             right = min(page_w - 55.0, 540.0)
-            top = 90.0
+            top = 112.0
             bottom = min(page_h - 160.0, 682.0)
         elif report_type == "Plt, Pst, dmax":
             top = 35.0
