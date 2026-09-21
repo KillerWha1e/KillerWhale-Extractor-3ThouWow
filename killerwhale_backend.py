@@ -2295,7 +2295,7 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
             # exactly like the RE sections. Do not recreate/edit any report data.
             left = 75.0
             right = min(page_w - 55.0, 540.0)
-            top = 116.0
+            top = 98.0
             bottom = min(page_h - 160.0, 682.0)
         elif report_type == "Plt, Pst, dmax":
             top = 35.0
@@ -2312,19 +2312,6 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
         safe_stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", pdf_path.stem)[:80]
         out = temp_dir / f"harmonic_flicker_{idx}_{safe_stem}.png"
         pix.save(out)
-
-        # Put the original PDF filename at the top-left INSIDE the snip image.
-        with Image.open(out).convert("RGB") as im:
-            header_h = 48
-            canvas = Image.new("RGB", (im.width, im.height + header_h), "white")
-            canvas.paste(im, (0, header_h))
-            draw = ImageDraw.Draw(canvas)
-            try:
-                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
-            except Exception:
-                font = ImageFont.load_default()
-            draw.text((10, 10), pdf_path.name, fill="black", font=font)
-            canvas.save(out)
 
         snips.append({
             "source_name": pdf_path.name,
@@ -2358,15 +2345,25 @@ def write_harmonic_flicker_sheet(wb, snips):
 
     row = 1
     for item in snips:
+        # Excel title, matching the RE section style.
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=14)
+        title_cell = ws.cell(row=row, column=1, value=item["source_name"])
+        title_cell.font = Font(name="Calibri", size=20, bold=True)
+        title_cell.alignment = Alignment(horizontal="left", vertical="center")
+        ws.row_dimensions[row].height = 28
+
+        # The image below is ONLY a direct snip from the original PDF.
+        # No report values/text are recreated or edited.
         img = XLImage(str(item["image_path"]))
-        # Keep the snip readable while fitting a normal Excel view.
         max_width = 930
         if img.width > max_width:
             ratio = max_width / float(img.width)
             img.width = int(img.width * ratio)
             img.height = int(img.height * ratio)
-        ws.add_image(img, f"B{row}")
-        row += max(8, int(math.ceil(img.height / 20.0))) + 2
+
+        image_row = row + 2
+        ws.add_image(img, f"A{image_row}")
+        row = image_row + max(8, int(math.ceil(img.height / 20.0))) + 2
 
     ws.sheet_view.topLeftCell = "A1"
     ws.sheet_view.selection[0].activeCell = "A1"
