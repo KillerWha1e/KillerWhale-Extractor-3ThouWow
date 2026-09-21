@@ -84,6 +84,15 @@ ce_files = st.file_uploader(
     key="ce_files"
 )
 
+st.subheader("Harmonic/Flickering")
+harmonic_flicker_files = st.file_uploader(
+    "Harmonic/Flickering PDF(s)",
+    type=["pdf"],
+    accept_multiple_files=True,
+    key="harmonic_flicker_files"
+)
+
+
 st.subheader("Recalculation")
 oats_files = st.file_uploader(
     "Recalculation PDF(s)",
@@ -142,6 +151,7 @@ def run_backend(preview_only=False, callback=None):
                 "RE",
                 "CE_PDF",
                 "CE_Excel",
+                "Harmonic_Flickering",
                 "Recalculation"
             )
         }
@@ -164,6 +174,11 @@ def run_backend(preview_only=False, callback=None):
             folders["CE_Excel"]
         )
 
+        harmonic_flicker_paths = save_uploads(
+            harmonic_flicker_files,
+            folders["Harmonic_Flickering"]
+        )
+
         oats_paths = save_uploads(
             oats_files,
             folders["Recalculation"]
@@ -173,6 +188,7 @@ def run_backend(preview_only=False, callback=None):
             re_paths,
             ce_pdf_paths=ce_pdf_paths,
             ce_excel_paths=ce_excel_paths,
+            harmonic_flicker_pdf_paths=harmonic_flicker_paths,
             oats_pdf_paths=oats_paths,
             oats_class=oats_class,
             progress_callback=callback
@@ -197,6 +213,10 @@ signature = (
     tuple(
         (f.name, f.size)
         for f in (ce_files or [])
+    ),
+    tuple(
+        (f.name, f.size)
+        for f in (harmonic_flicker_files or [])
     ),
     tuple(
         (f.name, f.size)
@@ -247,6 +267,7 @@ if legend_mode == "Manual Way":
         if not (
             re_files
             or ce_files
+            or harmonic_flicker_files
             or oats_files
         ):
             st.warning(
@@ -564,6 +585,7 @@ if extract_clicked:
     if not (
         re_files
         or ce_files
+        or harmonic_flicker_files
         or oats_files
     ):
 
