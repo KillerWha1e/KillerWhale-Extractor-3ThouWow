@@ -11,7 +11,7 @@ try:
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
     from openpyxl.drawing.image import Image as XLImage
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageFont
 except ImportError as e:
     missing = str(e).split("'")[-2] if "'" in str(e) else str(e)
     raise SystemExit(f"Missing package: {missing}. Run: pip install pymupdf openpyxl pillow")
@@ -2243,54 +2243,104 @@ def write_oats_sheet(wb, all_results, class_type):
 
 
 def build_harmonic_flicker_snips(pdf_paths, temp_dir):
-    """Create one clean result-table snip per Harmonic/Flickering PDF."""
+    """Find, classify, crop, label, and order Harmonic/Flickering result pages."""
     snips = []
     temp_dir = Path(temp_dir)
+
     for idx, pdf_path in enumerate([Path(p) for p in pdf_paths], 1):
         doc = fitz.open(pdf_path)
         chosen = None
-        report_type = "Harmonic/Flickering"
+        report_type = None
+
+        # Do NOT trust the filename. Identify the report by the data-table format.
         for page in doc:
             text = page.get_text("text", sort=True)
-            if "Order" in text and "Limit1[A rms]" in text:
+
+            # Harmonic current: Order 1-40 table with Limit1 / Limit2 columns.
+            if "Order" in text and "Limit1[A rms]" in text and "Limit2[A rms]" in text:
                 chosen = page
                 report_type = "Harmonic"
                 break
-            if "Segment" in text and ("Pst" in text or "dmax[%]" in text):
+
+            # Pst/Plt/dmax flicker: Segment table contains Pst and a Plt summary.
+            if "Segment" in text and "Pst" in text and "Plt" in text and "dmax[%]" in text:
                 chosen = page
-                report_type = "Flickering"
+                report_type = "Plt, Pst, dmax"
                 break
+
+            # dmax-only manual switching report: two Segment blocks + Total summary,
+            # but no Pst/Plt columns.
+            if ("Segment" in text and "dmax[%]" in text and "dc[%]" in text
+                    and "Total" in text and "Pst" not in text and "Plt" not in text):
+                chosen = page
+                report_type = "dmax"
+                break
+
         if chosen is None:
             doc.close()
             raise ValueError(
                 f"Could not find a supported Harmonic/Flickering result table in {pdf_path.name}."
             )
 
-        text = chosen.get_text("text", sort=True)
-        # Crop the actual result area, not the report header/footer.
-        # Harmonics has the long Order 1-40 table; flicker reports are shorter.
-        if report_type == "Harmonic":
-            top = 92.0
-            bottom = 735.0
-        else:
-            top = 66.0
-            bottom = 355.0 if "Pst" in text else 335.0
+        # Crop the RESULT PAGE in the same style for all three report formats.
+        # Include the report title and the complete result table, but omit page footer/blank space.
+        page_w = chosen.rect.width
+        page_h = chosen.rect.height
+        left = 35.0
+        right = page_w - 25.0
 
-        clip = fitz.Rect(72.0, top, 555.0, min(bottom, chosen.rect.height - 20.0))
+        if report_type == "Harmonic":
+            top = 35.0
+            bottom = min(page_h - 25.0, 735.0)
+        elif report_type == "Plt, Pst, dmax":
+            top = 35.0
+            bottom = min(page_h - 25.0, 620.0)
+        else:  # dmax
+            top = 35.0
+            bottom = min(page_h - 25.0, 620.0)
+
+        clip = fitz.Rect(left, top, right, bottom)
         pix = chosen.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), clip=clip, alpha=False)
-        out = temp_dir / f"harmonic_flicker_{idx}.png"
+
+        # Use a UNIQUE filename. Previously each one-file call reused
+        # harmonic_flicker_1.png, so later PDFs overwrote earlier snips.
+        safe_stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", pdf_path.stem)[:80]
+        out = temp_dir / f"harmonic_flicker_{idx}_{safe_stem}.png"
         pix.save(out)
+
+        # Put the original PDF filename at the top-left INSIDE the snip image.
+        with Image.open(out).convert("RGB") as im:
+            header_h = 48
+            canvas = Image.new("RGB", (im.width, im.height + header_h), "white")
+            canvas.paste(im, (0, header_h))
+            draw = ImageDraw.Draw(canvas)
+            try:
+                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
+            except Exception:
+                font = ImageFont.load_default()
+            draw.text((10, 10), pdf_path.name, fill="black", font=font)
+            canvas.save(out)
+
         snips.append({
             "source_name": pdf_path.name,
             "report_type": report_type,
             "image_path": out,
         })
         doc.close()
-    return snips
 
+    # Required output order, regardless of upload order or PDF filename:
+    # Harmonic -> Plt/Pst/dmax -> dmax.
+    order = {"Harmonic": 0, "Plt, Pst, dmax": 1, "dmax": 2}
+    snips.sort(key=lambda item: (order.get(item["report_type"], 99), item["source_name"].lower()))
+    return snips
 
 def write_harmonic_flicker_sheet(wb, snips):
     """Add the Harmonic/Flickering snips as their own workbook tab."""
+    order = {"Harmonic": 0, "Plt, Pst, dmax": 1, "dmax": 2}
+    snips = sorted(
+        snips,
+        key=lambda item: (order.get(item.get("report_type"), 99), item.get("source_name", "").lower()),
+    )
     title = "Harmonic-Flickering"
     if title in wb.sheetnames:
         del wb[title]
@@ -2303,10 +2353,6 @@ def write_harmonic_flicker_sheet(wb, snips):
 
     row = 1
     for item in snips:
-        c = ws.cell(row=row, column=2, value=item["source_name"])
-        c.font = Font(name="Calibri", size=12, bold=True)
-        row += 2
-
         img = XLImage(str(item["image_path"]))
         # Keep the snip readable while fitting a normal Excel view.
         max_width = 930
