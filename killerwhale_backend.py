@@ -2290,8 +2290,15 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
         right = page_w - 25.0
 
         if report_type == "Harmonic":
-            top = 35.0
-            bottom = min(page_h - 25.0, 735.0)
+            # Harmonic page 2:
+            # Start just above the Voltage/Current summary and end just
+            # below the Order 1-40 table / "N/A : Not Apply" note.
+            # This intentionally removes the large report title above it
+            # and the unused white area below it.
+            left = 75.0
+            right = min(page_w - 55.0, 540.0)
+            top = 90.0
+            bottom = min(page_h - 160.0, 682.0)
         elif report_type == "Plt, Pst, dmax":
             top = 35.0
             bottom = min(page_h - 25.0, 620.0)
