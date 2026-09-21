@@ -2298,11 +2298,21 @@ def build_harmonic_flicker_snips(pdf_paths, temp_dir):
             top = 98.0
             bottom = min(page_h - 160.0, 682.0)
         elif report_type == "Plt, Pst, dmax":
-            top = 35.0
-            bottom = min(page_h - 25.0, 620.0)
+            # Pure PDF snip only. Excel writes the filename as the large
+            # title above the image, just like RE/Harmonic.
+            # Keep the Segment/Pst table and the Plt table.
+            left = 75.0
+            right = min(page_w - 55.0, 540.0)
+            top = 150.0
+            bottom = min(page_h - 55.0, 735.0)
         else:  # dmax
-            top = 35.0
-            bottom = min(page_h - 25.0, 620.0)
+            # Pure PDF snip only. Excel writes the filename as the large
+            # title above the image, just like RE/Harmonic.
+            # Keep both Segment/dmax tables and the Total table.
+            left = 75.0
+            right = min(page_w - 55.0, 540.0)
+            top = 150.0
+            bottom = min(page_h - 55.0, 735.0)
 
         clip = fitz.Rect(left, top, right, bottom)
         pix = chosen.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), clip=clip, alpha=False)
