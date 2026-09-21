@@ -2241,7 +2241,88 @@ def write_oats_sheet(wb, all_results, class_type):
     ws.sheet_view.selection[0].sqref = "A1"
 
 
-def save_combined_excel(results, out_xlsx, ce_results_list=None, oats_results=None, oats_class="A"):
+
+def build_harmonic_flicker_snips(pdf_paths, temp_dir):
+    """Create one clean result-table snip per Harmonic/Flickering PDF."""
+    snips = []
+    temp_dir = Path(temp_dir)
+    for idx, pdf_path in enumerate([Path(p) for p in pdf_paths], 1):
+        doc = fitz.open(pdf_path)
+        chosen = None
+        report_type = "Harmonic/Flickering"
+        for page in doc:
+            text = page.get_text("text", sort=True)
+            if "Order" in text and "Limit1[A rms]" in text:
+                chosen = page
+                report_type = "Harmonic"
+                break
+            if "Segment" in text and ("Pst" in text or "dmax[%]" in text):
+                chosen = page
+                report_type = "Flickering"
+                break
+        if chosen is None:
+            doc.close()
+            raise ValueError(
+                f"Could not find a supported Harmonic/Flickering result table in {pdf_path.name}."
+            )
+
+        text = chosen.get_text("text", sort=True)
+        # Crop the actual result area, not the report header/footer.
+        # Harmonics has the long Order 1-40 table; flicker reports are shorter.
+        if report_type == "Harmonic":
+            top = 92.0
+            bottom = 735.0
+        else:
+            top = 66.0
+            bottom = 355.0 if "Pst" in text else 335.0
+
+        clip = fitz.Rect(72.0, top, 555.0, min(bottom, chosen.rect.height - 20.0))
+        pix = chosen.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), clip=clip, alpha=False)
+        out = temp_dir / f"harmonic_flicker_{idx}.png"
+        pix.save(out)
+        snips.append({
+            "source_name": pdf_path.name,
+            "report_type": report_type,
+            "image_path": out,
+        })
+        doc.close()
+    return snips
+
+
+def write_harmonic_flicker_sheet(wb, snips):
+    """Add the Harmonic/Flickering snips as their own workbook tab."""
+    title = "Harmonic-Flickering"
+    if title in wb.sheetnames:
+        del wb[title]
+    ws = wb.create_sheet(title)
+    ws.sheet_view.zoomScale = 75
+    ws.sheet_view.zoomScaleNormal = 75
+    ws.column_dimensions["A"].width = 3
+    for col in range(2, 15):
+        ws.column_dimensions[get_column_letter(col)].width = 10
+
+    row = 1
+    for item in snips:
+        c = ws.cell(row=row, column=2, value=item["source_name"])
+        c.font = Font(name="Calibri", size=12, bold=True)
+        row += 2
+
+        img = XLImage(str(item["image_path"]))
+        # Keep the snip readable while fitting a normal Excel view.
+        max_width = 930
+        if img.width > max_width:
+            ratio = max_width / float(img.width)
+            img.width = int(img.width * ratio)
+            img.height = int(img.height * ratio)
+        ws.add_image(img, f"B{row}")
+        row += max(8, int(math.ceil(img.height / 20.0))) + 2
+
+    ws.sheet_view.topLeftCell = "A1"
+    ws.sheet_view.selection[0].activeCell = "A1"
+    ws.sheet_view.selection[0].sqref = "A1"
+
+
+def save_combined_excel(results, out_xlsx, ce_results_list=None, oats_results=None, oats_class="A", harmonic_flicker_snips=None):
     # Keep RE sections grouped in a consistent standard/range order.
     results = sorted(results, key=re_sort_key)
 
@@ -2432,7 +2513,11 @@ def save_combined_excel(results, out_xlsx, ce_results_list=None, oats_results=No
     if ce_results_list:
         write_ce_sheet(wb, ce_results_list)
 
-    # Add OATS as a third tab when Recalculation PDFs were selected.
+    # Add Harmonic/Flickering as its own tab when those PDFs were selected.
+    if harmonic_flicker_snips:
+        write_harmonic_flicker_sheet(wb, harmonic_flicker_snips)
+
+    # Add OATS/Recalculation as its own tab when selected.
     if oats_results:
         write_oats_sheet(wb, oats_results, oats_class)
 
@@ -2505,7 +2590,7 @@ def _pair_ce_files(ce_pdf_paths, ce_excel_paths):
     # All names match. Preserve the user's PDF selection order.
     return [(pdf, excel_by_stem[pdf.stem.lower()][0]) for pdf in pdfs]
 
-def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oats_pdf_paths=None, oats_class="A", progress_callback=None):
+def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, harmonic_flicker_pdf_paths=None, oats_pdf_paths=None, oats_class="A", progress_callback=None):
     """
     Batch mode:
       - Multiple RE PDFs supported.
@@ -2516,6 +2601,7 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
     pdf_paths = [Path(p) for p in pdf_paths]
     ce_pdf_paths = [Path(p) for p in (ce_pdf_paths or [])]
     ce_excel_paths = [Path(p) for p in (ce_excel_paths or [])]
+    harmonic_flicker_pdf_paths = [Path(p) for p in (harmonic_flicker_pdf_paths or [])]
     oats_pdf_paths = [Path(p) for p in (oats_pdf_paths or [])]
     oats_class = str(oats_class).strip().upper()
     if oats_class not in ("A", "B"):
@@ -2526,10 +2612,12 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
 
     ce_pairs = _pair_ce_files(ce_pdf_paths, ce_excel_paths)
 
-    if not pdf_paths and not ce_pairs and not oats_pdf_paths:
+    if not pdf_paths and not ce_pairs and not harmonic_flicker_pdf_paths and not oats_pdf_paths:
         raise ValueError("Select RE PDF(s), CE PDF + Excel pair(s), or Recalculation PDF(s).")
 
-    base_path = pdf_paths[0] if pdf_paths else (ce_pairs[0][0] if ce_pairs else oats_pdf_paths[0])
+    base_path = (pdf_paths[0] if pdf_paths else
+                 (ce_pairs[0][0] if ce_pairs else
+                  (harmonic_flicker_pdf_paths[0] if harmonic_flicker_pdf_paths else oats_pdf_paths[0])))
     out_dir = base_path.parent / "EMC_Batch_Extracted"
     out_dir.mkdir(exist_ok=True)
 
@@ -2537,7 +2625,7 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
     total_rows = 0
 
     # Progress is based on each RE PDF, each CE PDF/Excel pair, and the final Excel save.
-    total_steps = len(pdf_paths) + len(ce_pairs) + len(oats_pdf_paths) + 1
+    total_steps = len(pdf_paths) + len(ce_pairs) + len(harmonic_flicker_pdf_paths) + len(oats_pdf_paths) + 1
     completed_steps = 0
 
     def report_progress(message):
@@ -2647,6 +2735,17 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
             completed_steps += 1
             report_progress(f"Finished CE file {ce_index}/{len(ce_pairs)}")
 
+        harmonic_flicker_snips = []
+        if harmonic_flicker_pdf_paths:
+            for hf_index, hf_pdf_path in enumerate(harmonic_flicker_pdf_paths, 1):
+                report_progress(
+                    f"Snipping Harmonic/Flickering PDF {hf_index}/{len(harmonic_flicker_pdf_paths)}: {hf_pdf_path.name}"
+                )
+                one_snip = build_harmonic_flicker_snips([hf_pdf_path], temp_dir)
+                harmonic_flicker_snips.extend(one_snip)
+                completed_steps += 1
+                report_progress(f"Finished Harmonic/Flickering PDF {hf_index}/{len(harmonic_flicker_pdf_paths)}")
+
         oats_results = []
         for oats_index, oats_pdf_path in enumerate(oats_pdf_paths, 1):
             report_progress(
@@ -2658,7 +2757,7 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
             completed_steps += 1
             report_progress(f"Finished Recalculation PDF {oats_index}/{len(oats_pdf_paths)}")
 
-        if not results and not ce_results_list and not oats_results:
+        if not results and not ce_results_list and not harmonic_flicker_snips and not oats_results:
             raise ValueError("No supported EMC result data were detected.")
 
         combined_xlsx = out_dir / "EMC_All_Results_RE_CE_OATS.xlsx"
@@ -2667,6 +2766,7 @@ def extract_multiple_pdfs(pdf_paths, ce_pdf_paths=None, ce_excel_paths=None, oat
             results,
             combined_xlsx,
             ce_results_list=ce_results_list,
+            harmonic_flicker_snips=harmonic_flicker_snips,
             oats_results=oats_results,
             oats_class=oats_class
         )
